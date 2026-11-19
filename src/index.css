@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Tema claro (por defecto) y tema oscuro (.dark en <html>)            */
+/* Los tokens (canvas, sidebar, line, slate) leen estas variables.     */
+/* ------------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+
+  --c-canvas: 245 246 251;   /* #F5F6FB */
+  --c-sidebar: 247 248 253;  /* #F7F8FD */
+  --c-line: 231 233 243;     /* #E7E9F3 */
+  --c-surface: 255 255 255;  /* superficies tipo card/menú */
+
+  --c-s50: 248 250 252;      /* #F8FAFC */
+  --c-s100: 241 245 249;     /* #F1F5F9 */
+  --c-s200: 226 232 240;     /* #E2E8F0 */
+  --c-s300: 203 213 225;     /* #CBD5E1 */
+  --c-s400: 148 163 184;     /* #94A3B8 */
+  --c-s500: 100 116 139;     /* #64748B */
+  --c-s600: 71 85 105;       /* #475569 */
+  --c-s700: 51 65 85;        /* #334155 */
+  --c-s800: 30 41 59;        /* #1E293B */
+  --c-s900: 15 23 42;        /* #0F172A */
+}
+
+.dark {
+  color-scheme: dark;
+
+  --c-canvas: 13 15 26;      /* #0D0F1A */
+  --c-sidebar: 17 19 32;     /* #111320 */
+  --c-line: 41 45 68;        /* #292D44 */
+  --c-surface: 24 27 44;     /* #181B2C */
+
+  --c-s50: 30 33 52;         /* superficies sutiles */
+  --c-s100: 37 41 63;        /* hover de superficies */
+  --c-s200: 49 54 79;        /* divisores suaves */
+  --c-s300: 73 79 106;       /* bordes / scrollbars */
+  --c-s400: 141 148 175;     /* texto secundario */
+  --c-s500: 170 177 202;     /* texto normal */
+  --c-s600: 202 208 228;     /* texto medio */
+  --c-s700: 224 229 243;     /* texto fuerte */
+  --c-s800: 239 242 250;
+  --c-s900: 246 248 253;     /* texto más fuerte */
+}
+
+/* Superficies blancas (bg-white inline) → superficie oscura elevada */
+.dark .bg-white {
+  background-color: rgb(var(--c-surface));
+}
+
+/* Clases de componentes que llevan bg-white vía @apply */
+.dark .card,
+.dark .field {
+  background-color: rgb(var(--c-surface));
+}
+
+.dark * {
+  scrollbar-color: rgb(var(--c-s300)) transparent;
+}
+
+/* Tintes suaves de badges/alertas → versiones translúcidas sobre oscuro */
+.dark .bg-brand-50 { background-color: rgb(118 100 245 / 0.18); }
+.dark .bg-blue-50 { background-color: rgb(59 130 246 / 0.16); }
+.dark .bg-emerald-50 { background-color: rgb(16 185 129 / 0.15); }
+.dark .bg-mint-50 { background-color: rgb(16 185 129 / 0.15); }
+.dark .bg-red-50 { background-color: rgb(239 68 68 / 0.13); }
+.dark .bg-amber-50 { background-color: rgb(245 158 11 / 0.15); }
+.dark .bg-orange-50 { background-color: rgb(249 115 22 / 0.15); }
+
+.dark .text-brand-600 { color: #B6A9FF; }
+.dark .text-brand-700 { color: #CFC7FF; }
+.dark .text-blue-600 { color: #93C5FD; }
+.dark .text-blue-700 { color: #BFDBFE; }
+.dark .text-emerald-600 { color: #6EE7B7; }
+.dark .text-emerald-700 { color: #A7F3D0; }
+.dark .text-emerald-900 { color: #D1FAE5; }
+.dark .text-mint-700 { color: #A7F3D0; }
+.dark .text-red-600 { color: #FCA5A5; }
+.dark .text-red-700 { color: #FECACA; }
+.dark .text-red-500 { color: #F87171; }
+.dark .text-amber-600 { color: #FCD34D; }
+.dark .text-amber-700 { color: #FDE68A; }
+.dark .text-amber-900 { color: #FEF3C7; }
+.dark .text-orange-700 { color: #FDBA74; }
+
+.dark .border-red-100 { border-color: rgb(239 68 68 / 0.28); }
+.dark .border-emerald-100 { border-color: rgb(16 185 129 / 0.28); }
+.dark .border-amber-100 { border-color: rgb(245 158 11 / 0.28); }
+.dark .border-blue-100 { border-color: rgb(59 130 246 / 0.28); }
+
+/* Variantes hover / alpha / gradiente con colores estáticos */
+.dark .hover\:bg-white:hover { background-color: rgb(var(--c-surface)); }
+.dark .hover\:bg-white\/80:hover { background-color: rgb(var(--c-surface) / 0.8); }
+.dark .hover\:bg-white\/70:hover { background-color: rgb(var(--c-surface) / 0.7); }
+.dark .bg-white\/60 { background-color: rgb(var(--c-surface) / 0.6); }
+.dark .bg-white\/70 { background-color: rgb(var(--c-surface) / 0.7); }
+.dark .bg-white\/80 { background-color: rgb(var(--c-surface) / 0.8); }
+.dark .bg-white\/90 { background-color: rgb(var(--c-surface) / 0.9); }
+.dark .bg-white\/95 { background-color: rgb(var(--c-surface) / 0.95); }
+.dark .hover\:bg-red-50:hover { background-color: rgb(239 68 68 / 0.13); }
+.dark .hover\:bg-amber-50:hover { background-color: rgb(245 158 11 / 0.15); }
+.dark .hover\:bg-brand-50:hover { background-color: rgb(118 100 245 / 0.18); }
+.dark .hover\:bg-brand-100:hover { background-color: rgb(118 100 245 / 0.28); }
+.dark .hover\:text-red-600:hover,
+.dark .hover\:text-red-700:hover { color: #FCA5A5; }
+.dark .hover\:text-amber-700:hover { color: #FDE68A; }
+.dark .hover\:text-brand-600:hover,
+.dark .hover\:text-brand-700:hover,
+.dark .hover\:text-brand-500:hover { color: #B6A9FF; }
+.dark .group:hover .group-hover\:text-brand-700,
+.dark .group:hover .group-hover\:text-brand-500 { color: #B6A9FF; }
+.dark .hover\:border-red-100:hover { border-color: rgb(239 68 68 / 0.28); }
+.dark .text-brand-500 { color: #A79FFF; }
+
+/* Chip activo del selector de tema (blanco puro también en modo oscuro) */
+.theme-chip-active {
+  background-color: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.2);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-slate-800;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd2e4 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-white shadow-card;
+  }
+
+  .field {
+    @apply h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-slate-50;
+  }
+
+  .field-error {
+    @apply border-red-300 focus:border-red-400 focus:ring-red-500/10;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[12px] font-semibold text-slate-600;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-slate-200/70;
+  }
+
+  .page-title {
+    @apply text-[26px] font-bold leading-tight tracking-[-0.03em] text-slate-900 sm:text-[30px];
+  }
+
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400;
+  }
+
+  .subtle-link {
+    @apply inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-600 transition hover:text-brand-700;
+  }
+
+  .action-icon {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/20;
+  }
+
+  .table-head {
+    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400;
+  }
+
+  .surface-hover {
+    @apply transition hover:border-brand-200 hover:shadow-soft;
+  }
+}
