@@ -61,6 +61,31 @@ export interface Task {
   updated_at: string
 }
 
+export type NotificationType =
+  | 'TASK_ASSIGNED'
+  | 'TASK_UNASSIGNED'
+  | 'TASK_COMPLETED'
+  | 'TASK_CREATED'
+  | 'TASK_DELETED'
+  | 'MEMBER_ADDED'
+  | 'MEMBER_REMOVED'
+  | 'OWNER_TRANSFERRED'
+
+export interface NotificationPayload {
+  task_id?: number
+  module_id?: number
+}
+
+export interface Notification {
+  id: number
+  type: NotificationType
+  title: string
+  message: string
+  payload: NotificationPayload
+  is_read: boolean
+  created_at: string
+}
+
 export interface Paginated<T> {
   total: number
   total_pages: number

@@ -3,11 +3,15 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Bell,
+  CheckCheck,
   CheckCircle2,
   ChevronRight,
   ChevronsUpDown,
   Compass,
+  Crown,
+  Inbox,
   LayoutGrid,
+  ListPlus,
   LogOut,
   Menu,
   Moon,
@@ -16,17 +20,31 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
+  Trash2,
+  UserMinus,
+  UserPlus,
   Users,
   X,
 } from 'lucide-react'
-import { cn, moduleCode, taskCode } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api'
+import { cn, formatRelative, moduleCode, taskCode } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useLogout } from '@/hooks/useAuth'
 import { useExploreModules, useWorkspaceOverview } from '@/hooks/useModules'
+import {
+  useDeleteAllNotifications,
+  useDeleteNotification,
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+} from '@/hooks/useNotifications'
+import { useNotificationsSocket } from '@/hooks/useNotificationsSocket'
 import { toast } from '@/stores/toast'
+import type { Notification, NotificationType } from '@/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ModuleFormModal } from '@/components/modules/ModuleFormModal'
 import { Logo } from './Logo'
 
@@ -449,14 +467,34 @@ function CommandPalette({
   )
 }
 
+const NOTIFICATION_META: Record<
+  NotificationType,
+  { icon: typeof Bell; className: string }
+> = {
+  TASK_ASSIGNED: { icon: UserPlus, className: 'bg-brand-50 text-brand-600' },
+  TASK_UNASSIGNED: { icon: UserMinus, className: 'bg-slate-100 text-slate-600' },
+  TASK_COMPLETED: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-600' },
+  TASK_CREATED: { icon: ListPlus, className: 'bg-blue-50 text-blue-600' },
+  TASK_DELETED: { icon: Trash2, className: 'bg-rose-50 text-rose-600' },
+  MEMBER_ADDED: { icon: Users, className: 'bg-violet-50 text-violet-600' },
+  MEMBER_REMOVED: { icon: UserMinus, className: 'bg-rose-50 text-rose-600' },
+  OWNER_TRANSFERRED: { icon: Crown, className: 'bg-amber-50 text-amber-600' },
+}
+
 function NotificationsMenu() {
-  const { pendingTasks } = useWorkspaceOverview()
-  const user = useAuthStore((state) => state.user)
   const [open, setOpen] = useState(false)
+  const [deleting, setDeleting] = useState<Notification | null>(null)
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
+  const { data, isLoading } = useNotifications()
+  const markRead = useMarkNotificationRead()
+  const markAllRead = useMarkAllNotificationsRead()
+  const deleteNotification = useDeleteNotification()
+  const deleteAllNotifications = useDeleteAllNotifications()
 
-  const myPending = pendingTasks.filter(({ task }) => task.assignee_id === user?.id)
+  const notifications = data?.results ?? []
+  const unread = data?.unread_count ?? 0
 
   useEffect(() => {
     if (!open) return
@@ -467,58 +505,196 @@ function NotificationsMenu() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [open])
 
+  const handleSelect = (notification: Notification) => {
+    if (!notification.is_read) markRead.mutate(notification.id)
+    setOpen(false)
+
+    const moduleId = notification.payload.module_id
+    navigate(moduleId ? `/modules/${moduleId}` : '/tasks')
+  }
+
+  const handleDelete = (notification: Notification) => {
+    deleteNotification.mutate(notification.id, {
+      onSuccess: () => {
+        toast.success('Notificación eliminada', notification.title)
+        setDeleting(null)
+      },
+      onError: (error) => toast.error('No se pudo eliminar', getApiErrorMessage(error)),
+    })
+  }
+
   return (
     <div className="relative" ref={containerRef}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-        aria-label="Notificaciones"
+        aria-label={
+          unread > 0 ? `Notificaciones (${unread} sin leer)` : 'Notificaciones'
+        }
         aria-expanded={open}
       >
         <Bell className="h-[18px] w-[18px]" />
-        {myPending.length > 0 ? (
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-white bg-rose-500" />
+        {unread > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[10px] font-semibold leading-none text-white">
+            {unread > 9 ? '9+' : unread}
+          </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-11 z-40 w-72 overflow-hidden rounded-2xl border border-line bg-white shadow-float animate-pop-in">
-          <div className="border-b border-line px-4 py-3">
-            <p className="text-[13px] font-semibold text-slate-900">Notificaciones</p>
-            <p className="text-[11px] text-slate-500">Resumen de tu actividad pendiente</p>
+        <div className="absolute right-0 top-11 z-40 w-80 overflow-hidden rounded-2xl border border-line bg-white shadow-float animate-pop-in">
+          <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+            <div>
+              <p className="text-[13px] font-semibold text-slate-900">Notificaciones</p>
+              <p className="text-[11px] text-slate-500">
+                {unread > 0 ? `${unread} sin leer` : 'Estás al día'}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              {unread > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => markAllRead.mutate()}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-brand-600 transition hover:bg-brand-50"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  Marcar todas
+                </button>
+              ) : null}
+              {!isLoading && notifications.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setDeleteAllOpen(true)}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar todas
+                </button>
+              ) : null}
+            </div>
           </div>
-          <div className="p-2">
-            {myPending.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false)
-                  navigate('/tasks')
-                }}
-                className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50"
-              >
-                <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                  <CheckCircle2 className="h-4 w-4" />
-                </span>
-                <span>
-                  <span className="block text-[12px] font-semibold text-slate-800">
-                    Tienes {myPending.length} {myPending.length === 1 ? 'tarea pendiente' : 'tareas pendientes'}
-                  </span>
-                  <span className="block text-[11px] text-slate-500">
-                    Revísalas en Todas las Tareas.
-                  </span>
-                </span>
-              </button>
-            ) : (
-              <div className="px-3 py-8 text-center">
-                <p className="text-[12px] font-semibold text-slate-700">Todo al día</p>
-                <p className="mt-1 text-[11px] text-slate-500">No tienes tareas pendientes asignadas.</p>
+
+          <div className="max-h-[360px] overflow-y-auto p-2">
+            {isLoading ? (
+              <div className="space-y-2 p-1">
+                {[0, 1, 2].map((index) => (
+                  <div
+                    key={index}
+                    className="h-14 animate-pulse rounded-xl bg-slate-100"
+                  />
+                ))}
               </div>
+            ) : notifications.length === 0 ? (
+              <div className="px-3 py-8 text-center">
+                <span className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <Inbox className="h-5 w-5" />
+                </span>
+                <p className="text-[12px] font-semibold text-slate-700">Todo al día</p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Aquí verás lo que ocurra en tus módulos.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {notifications.map((notification) => {
+                  const meta = NOTIFICATION_META[notification.type]
+                  const Icon = meta.icon
+
+                  return (
+                    <li key={notification.id} className="relative flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(notification)}
+                        className={cn(
+                          'flex flex-1 items-start gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50',
+                          !notification.is_read && 'bg-brand-50/40 dark:bg-brand-500/15',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                            meta.className,
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-start justify-between gap-2">
+                            <span className="block truncate text-[12px] font-semibold text-slate-800">
+                              {notification.title}
+                            </span>
+                            {!notification.is_read ? (
+                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
+                            ) : null}
+                          </span>
+                          {notification.message ? (
+                            <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">
+                              {notification.message}
+                            </span>
+                          ) : null}
+                          <span className="mt-1 block text-[10px] text-slate-400">
+                            {formatRelative(notification.created_at)}
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setDeleting(notification)
+                        }}
+                        className="mt-0.5 rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        aria-label={`Eliminar notificación: ${notification.title}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (!deleting) return
+          deleteNotification.mutate(deleting.id, {
+            onSuccess: () => {
+              toast.success('Notificación eliminada', deleting.title)
+              setDeleting(null)
+            },
+            onError: (error) => toast.error('No se pudo eliminar', getApiErrorMessage(error)),
+          })
+        }}
+        title="Eliminar notificación"
+        description="Esta notificación se eliminará de forma permanente."
+        confirmLabel="Eliminar"
+        loading={deleteNotification.isPending}
+      />
+
+      <ConfirmDialog
+        open={deleteAllOpen}
+        onClose={() => setDeleteAllOpen(false)}
+        onConfirm={() =>
+          deleteAllNotifications.mutate(undefined, {
+            onSuccess: () => {
+              toast.success('Notificaciones eliminadas', 'Se borraron todas tus notificaciones.')
+              setDeleteAllOpen(false)
+            },
+            onError: (error) => toast.error('No se pudo eliminar', getApiErrorMessage(error)),
+          })
+        }
+        title="Eliminar notificaciones"
+        description="Se eliminarán todas tus notificaciones. Esta acción no se puede deshacer."
+        confirmLabel="Eliminar todas"
+        tone="danger"
+        loading={deleteAllNotifications.isPending}
+      />
     </div>
   )
 }
@@ -667,6 +843,9 @@ export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const location = useLocation()
+
+  // Canal en tiempo real: campana, badge y toasts sin recargar.
+  useNotificationsSocket()
 
   useEffect(() => {
     setMobileOpen(false)

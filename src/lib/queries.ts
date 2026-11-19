@@ -1,5 +1,13 @@
 import { api, fetchAll } from '@/lib/api'
-import type { ExploreModule, Member, Module, Task, User } from '@/types'
+import type {
+  ExploreModule,
+  Member,
+  Module,
+  Notification,
+  Paginated,
+  Task,
+  User,
+} from '@/types'
 
 export const queryKeys = {
   modules: ['modules'] as const,
@@ -10,6 +18,8 @@ export const queryKeys = {
   members: (moduleId: number) => ['members', moduleId] as const,
   tasks: (moduleId: number) => ['tasks', moduleId] as const,
   users: ['users'] as const,
+  notifications: ['notifications'] as const,
+  notificationList: () => [...queryKeys.notifications, 'list'] as const,
 }
 
 export async function fetchModules(): Promise<Module[]> {
@@ -40,4 +50,20 @@ export async function fetchTasks(moduleId: number): Promise<Task[]> {
 
 export async function fetchUsers(): Promise<User[]> {
   return fetchAll<User>('/users/')
+}
+
+export interface NotificationsResponse extends Paginated<Notification> {
+  unread_count: number
+}
+
+export async function fetchNotifications(
+  params?: { unread?: boolean; pageSize?: number },
+): Promise<NotificationsResponse> {
+  const { data } = await api.get<NotificationsResponse>('/notifications/', {
+    params: {
+      ...(params?.unread === undefined ? {} : { unread: params.unread }),
+      page_size: params?.pageSize ?? 20,
+    },
+  })
+  return data
 }
